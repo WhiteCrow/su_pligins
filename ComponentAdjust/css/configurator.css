@@ -63,7 +63,8 @@ html, body {
 
 #content {
   position: absolute;
-  bottom: 25px;
+  top: 110px;
+  //bottom: 25px;
   width: 100%;
   border: 1px solid white;
   clear: left;

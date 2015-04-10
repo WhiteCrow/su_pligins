@@ -37,7 +37,6 @@ function init() {
 <body class="config-body" oncontextmenu="return false;" onload="init()"
     onresize="cfg.handleResize()">
 <div class="no-selection-head"></div>
-<textarea id="original-html" style="visibility:hidden">
 <div id="background">
 
 <div id="header">
@@ -50,10 +49,10 @@ function init() {
 </div>
 
 <div id="content">
-  <div id="config-subhead"></div>
-  <div id="config-description"></div>
-  <div id="config-options"></div>
-  <div id="config-error"></div>
+  <div id="config-subhead">config-subhead</div>
+  <div id="config-description">config-description</div>
+  <div id="config-options">config-options</div>
+  <div id="config-error">config-error</div>
 </div>
 
 <div id="footer">
@@ -61,9 +60,8 @@ function init() {
       class="config-button" value="Apply" onclick="cfg.doApply(this)"/>
 </div>
 
+<script src="../js/jquery-1.11.2.min.js" type="text/javascript" language="JavaScript"></script>
 </div>
-</textarea>
-
 </body>
 </html>
 
