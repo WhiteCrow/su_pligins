@@ -27,15 +27,25 @@ License: All Rights Reserved.
     type="text/javascript" language="JavaScript"></script>
 
 <script type="text/javascript" language="JavaScript">
-function init() {
-  cfg.init();
+function callRuby(actionName) {
+  var query = 'skp:set_options@' + actionName;
+  window.location.href = query;
+}
+function expandDefinition(id){
+  obj = $("#" + id)
+  if(obj.is(":hidden")){
+    obj.show()
+  }else{
+    obj.hide()
+  }
+}
+function applyConfig(){
 }
 </script>
 
 </head>
 
-<body class="config-body" oncontextmenu="return false;" onload="init()"
-    onresize="cfg.handleResize()">
+<body class="config-body"  onload="callRuby('test')">
 <div class="no-selection-head"></div>
 <div id="background">
 
@@ -49,19 +59,18 @@ function init() {
 </div>
 
 <div id="content">
-  <div id="config-subhead">config-subhead</div>
-  <div id="config-description">config-description</div>
-  <div id="config-options">config-options</div>
-  <div id="config-error">config-error</div>
+  <div id="config-subhead"></div>
+  <div id="config-description"></div>
+  <div id="config-options"></div>
+  <div id="config-error"></div>
 </div>
 
 <div id="footer">
     <input type="submit" id="applyButton" name="applyButton" disabled="disabled"
-      class="config-button" value="Apply" onclick="cfg.doApply(this)"/>
+      class="config-button" value="Apply" onclick="applyConfig"/>
 </div>
 
 <script src="../js/jquery-1.11.2.min.js" type="text/javascript" language="JavaScript"></script>
 </div>
 </body>
 </html>
-

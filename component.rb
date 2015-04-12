@@ -15,22 +15,60 @@ end
 def component_adjust_dialog
   dlg = UI::WebDialog.new("组件调整", true, "", 339, 641, 150, 150, true)
   dlg.set_file "#{$LOAD_PATH[1]}/ComponentAdjust/html/configurator.html"
-  #dlg.add_action_callback("pull_information") {|dlg, params| UI.messagebox params; @params = params}
-  @selected_component_definition ||= selected_component_definition
-  dlg.execute_script("$('#header #config-head').html('#{@selected_component_definition.name}')")
-  dlg.execute_script("$('#header #config-image').html(\"<img src=\'#{$LOAD_PATH[1]}/config-thumb.jpg'>\")")
   dlg
 end
 
-def init_component_adjust_dialog
+def init_window(definition)
+  @_html_string = ""
   dialog = component_adjust_dialog
-  definition = selected_component_definition
-  attrs = selected_component_attrs(definition)
-  selected_component_customized_attrs(attrs)
-  customized_attrs = selected_component_customized_attrs(attrs)
-  set_config_options(dialog, customized_attrs)
+  dialog.add_action_callback("set_options") do |web_dialog,action_name|
+    if action_name == 'test'
+      dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{$LOAD_PATH[1]}/config-thumb.jpg'>\")")
+      dialog.execute_script("$('#header #config-head').html('#{definition.name}')")
+      set_config_options(dialog, definition);
+    end
+  end
+  dialog
 end
 
+def switch_window
+  definition = selected_component_definition
+  return UI.messagebox("请选择一个动态组件") if definition.nil?
+  @_dlg = init_window(definition)
+  @_dlg.visible? ? @_dlg.close : @_dlg.show
+end
+
+def config_html_str(definition)
+  return @_html_string if definition.nil?
+
+  attrs = selected_component_attrs(definition)
+
+  return @_html_string if attrs.nil?
+
+  attrs = selected_component_customized_attrs(attrs)
+  definition_id = definition.object_id.to_s
+  @_html_string << "<a style=\"color: blue;\" onclick=\"expandDefinition(#{definition_id});\"><strong> > #{definition.name} </strong></a><br />"
+  if @_selected_component_definition == definition
+    @_html_string << "<div id=#{definition_id}>"
+  else
+    @_html_string << "<div id=#{definition_id} style=\"display: none;\">"
+  end
+  @_html_string << "名字<input value=#{definition.name}></input><br/>"
+  attrs.each_pair do |key, value|
+    @_html_string << "#{key}<input value=#{value}></input><br/>"
+  end
+
+  @_html_string << "<div style=\"margin-left: 10px\">"
+  sub_definitions(definition).each do |sub_d|
+    config_html_str(sub_d)
+  end
+  @_html_string << "</div></div>"
+end
+
+def set_config_options(dialog, definition)
+  config_html_str(definition)
+  dialog.execute_script("$('#content #config-options').html('#{@_html_string}')")
+end
 def selected_component_definition
   selection = Sketchup.active_model.selection
   @_selected_component_definition =
@@ -42,7 +80,8 @@ def selected_component_definition
 end
 
 def selected_component_attrs(definition)
-  definition.attribute_dictionaries.map{|dict| dict }.last
+  dict = definition.attribute_dictionaries
+  dict.nil? ? nil : dict.map{|d| d }.first
 end
 
 def selected_component_customized_attrs(attrs)
@@ -58,27 +97,19 @@ def selected_component_customized_attrs(attrs)
   customized_attributes
 end
 
-def set_config_options(dialog, attrs)
-  @_d = dialog; @_a = attrs
-  html_string = ''
-  attrs.each_pair do |key, value|
-    html_string << "#{key}<input value=#{value}></input><br/>"
+def sub_definitions(definition)
+  definition.entities.select do |e|
+    e.is_a? Sketchup::ComponentInstance
+  end.map do |e|
+    e.definition
   end
-  @_str = html_string
-  dialog.execute_script("$('#content #config-options').html('#{html_string}')")
-  dialog
-end
-
-def switch_component_adjust_dialog
-  @dlg = init_component_adjust_dialog
-  @dlg.visible? ? @dlg.close : @dlg.show
 end
 
 def component_toolbar
   toolbar = UI::Toolbar.new("动态组件插件")
 
   switch_display_command = UI::Command.new('Swith display component') { UI.messagebox 'Swith display component' }
-  component_adjust_command = UI::Command.new('adjust component') { switch_component_adjust_dialog }
+  component_adjust_command = UI::Command.new('adjust component') { switch_window }
   component_function_command = UI::Command.new('function component') { UI.messagebox 'component function' }
 
   switch_display_command.small_icon = './ComponentAdjust/images/interact_tool_small.png'

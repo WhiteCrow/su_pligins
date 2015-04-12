@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html>
+	<script type="text/JavaScript">	  
+		function callRuby(actionName) {
+			var query = 'skp:get_data@' + actionName;
+			window.location.href = query;
+		}
+		function etatFiltres(){
+			var filtres;
+			filtres="";
+			for (var i=0; i < 7; i++) {
+				if (document.getElementById(i+'').checked) {
+					filtres+='1';
+				} else {
+					filtres+='0';
+				}
+			}
+			callRuby('AppliquerFiltres('+filtres+')');
+		}
+		function selectAll(cb){
+			if (cb.checked) {
+				for (var i=0; i < 7; i++) { document.getElementById(i+'').checked = true; }
+			} else {
+				for (var i=0; i < 7; i++) { document.getElementById(i+'').checked = false; }
+			}
+		}
+	</script>
+
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<style type="text/css">
+			table.tableau {
+				width:100%;
+			}
+			.tableau TH {
+				text-align:left;
+				background-color:BBBBBB;
+			}
+		</style>
+	</head>
+
+	<body>
+		<table class="tableau">
+			<TR>
+				<TH>
+					<input type="checkbox" id="all" onchange="selectAll(this);" onclick="selectAll(this);"> <B><span id="title">Select/Unselect all</span></B></input><BR>
+				</TH>
+			</TR>
+			<TR>
+				<TD>
+					<input type="checkbox" id="0"> <img src="Images/Group.png"/>&nbsp <span id="title_0">Groups</span><BR>
+					<input type="checkbox" id="1"> <img src="Images/Component_grey.png"/>&nbsp <span id="title_1">Groups</span><BR>
+					<input type="checkbox" id="2"> <img src="Images/Component_uptodate.png"/>&nbsp <span id="title_2">Component up to date</span><BR>
+					<input type="checkbox" id="3"> <img src="Images/Component_unlinked.png"/>&nbsp <span id="title_3">Component has no defined date</span><BR>
+					<input type="checkbox" id="4"> <img src="Images/Component_link_broken.png"/>&nbsp <span id="title_4">File path doesn't exist</span><BR>
+					<input type="checkbox" id="5"> <img src="Images/Component_older.png"/>&nbsp <span id="title_5">File is NEWER than component</span><BR>
+					<input type="checkbox" id="6"> <img src="Images/Component_notuptodate.png"/>&nbsp <span id="title_6">File is OLDER than component</span><BR>
+				</TD>
+			</TR>
+		</table>
+		<center>
+			<button onclick="etatFiltres();" style="width:33%;"><span id="buttonApply">Apply</span></button>&nbsp &nbsp &nbsp 
+			<button onclick="callRuby('Annuler')" style="width:33%;"><span id="buttonCancel">Cancel</span></button>
+		</center>
+	</body>
+</html>

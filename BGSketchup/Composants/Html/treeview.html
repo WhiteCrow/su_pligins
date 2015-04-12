@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html>
+<script type="text/JavaScript" src="../../JQUERY/jquery-1.10.2.js"></script>
+<script type="text/JavaScript" src="../../JQUERY/jquery.contextmenu.r2.js"></script>
+<script type="text/JavaScript">
+  
+	function callRuby(actionName) {
+		var query = 'skp:get_data@' + actionName;
+		window.location.href = query;
+	}
+    
+    function addEvents(tree) { 			// Add this to the onload event of the BODY element
+		activateTree(document.getElementById(tree));
+    }
+	function desactivateTree(tree) {
+		var oList=document.getElementById(tree);
+		if (oList.removeEventListener) {
+			oList.removeEventListener("click", toggleBranch);
+		} else if (oList.detachEvent) { // For IE
+			oList.detachEvent("onclick", toggleBranch);
+		} else {
+			alert('!! BROWSER DOES NOT SUPPORT JAVASCRIPT EVENT BINDING !!');
+		}
+	}    
+    function activateTree(oList) { 		// This function traverses the list and add links to nested list items
+		// Collapse the tree
+		for (var i=0; i < oList.getElementsByTagName("ul").length; i++) {
+			oList.getElementsByTagName("ul")[i].style.display="none";
+		}
+		// Add the click-event handler to the list items
+		if (oList.addEventListener) {
+			oList.addEventListener("click", toggleBranch, false);
+			oList.addEventListener("contextmenu", toggleBranch, false);
+			
+		} else if (oList.attachEvent) { // For IE
+			oList.attachEvent("onclick", toggleBranch);
+			oList.attachEvent("oncontextmenu", toggleBranch);
+		}
+	}
+	function efface_fond(oList) {		// Efface le fond des Ã©lÃ©ments de la liste
+		var oList=document.getElementById('LinkedList1');
+		for (var i=0; i < oList.getElementsByTagName("li").length; i++) {
+			oList.getElementsByTagName("li")[i].style.backgroundColor="#FFFFFF";          
+		} 
+	}
+	function found_element(id) {
+		var el = document.getElementById(id);
+		el.scrollIntoView(false);
+	}
+	function showBranch(id) { 			//Show parent of a branch, in order to show the branch
+		var el = document.getElementById(id);
+		var node = el;
+		while(node.tagName !== "UL") {
+			node = node.parentNode;
+		}
+		node.style.display="block";
+	}
+	function showBranch2(id) { 			//Show the branch
+		oBranch=document.getElementById(id)
+		oBranch.style.display="block";
+		cSubBranches = oBranch.getElementsByTagName("ul");
+		if (cSubBranches.length > 0) {
+			cSubBranches[0].style.display = "block";	// sinon on l'afffiche
+			cSubBranches[0].style.backgroundColor="#FFFFFF";
+		}
+	}
+    function toggleBranch(event) {		// This is the click-event handler
+		var oBranch, cSubBranches;
+		if (event.target) {
+			oBranch = event.target;
+		} else if (event.srcElement) { // For IE
+			oBranch = event.srcElement;
+		}
+		if (oBranch==document.getElementById('LinkedList1')) {
+			return;
+		}
+		// On efface les fonds colorés
+			efface_fond();
+		// On colore le fond de l'élément choisi 
+			oBranch.style.backgroundColor="#CCCCFF"; 
+		
+		// On déplie ou repli l'élément listé
+			cSubBranches = oBranch.getElementsByTagName("ul");
+			if (cSubBranches.length > 0) {						// Si il y a une sous-liste
+				if (cSubBranches[0].style.display == "block") {	// alors si la sous-liste est affichée
+					cSubBranches[0].style.display = "none";		// on la masque
+					callRuby('hideBranch('+oBranch.getAttribute("data-test")+')');
+					//callRuby('hideBranch('+cSubBranches[0].getAttribute("data-test")+')');
+				} else {
+					cSubBranches[0].style.display = "block";	// sinon on l'afffiche
+					cSubBranches[0].style.backgroundColor="#FFFFFF";
+					callRuby('showBranch('+oBranch.getAttribute("data-test")+')');
+					//callRuby('showBranch('+cSubBranches[0].getAttribute("data-test")+')');
+				}
+			} else { // pas de sous-liste
+				//callRuby('showBranch('+oBranch.getAttribute("data-test")+')');
+			}
+		// On créé un événement dans Sketchup
+			callRuby('clickElement('+oBranch.getAttribute("data-test")+')');
+    }
+
+	function setWindowSize(){ 
+		var myWidth, myHeight,h,w
+		if (typeof (window.innerWidth) == 'number') {
+			myWidth = window.innerWidth;
+			myHeight = window.innerHeight;
+		} else {
+			if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
+				myWidth = document.documentElement.clientWidth;
+				myHeight = document.documentElement.clientHeight;
+			} else {
+				if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
+					myWidth = document.body.clientWidth;
+					myHeight = document.body.clientHeight;
+				}
+			}
+		}
+		
+		//Height
+		h=myHeight-65;
+		if (h<200) { h=200 }
+		document.getElementById('LinkedList1').style.height=h+"px";
+		document.getElementById('options_list').style.height=h+"px";
+				
+		//Width
+		w=myWidth-10
+		if (w<290) { w=290 }
+		document.getElementById('LinkedList1').style.width=w+"px";
+		
+		taille=myHeight+','+myWidth
+		callRuby('enregistrer_taille_fenetre('+taille+')');
+	}
+
+	function show_options(){
+		document.getElementById("div_options").style.display="block";
+		writeNext(document.getElementById('LinkedList1').style.height.slice(0, -2),document.getElementById('LinkedList1').style.height,document.getElementById('div_laliste').style.height)
+	}
+	function writeNext(i,old,old2){
+		document.getElementById('LinkedList1').style.height=i+"px";
+		document.getElementById('div_laliste').style.height=i+"px";
+		if(i <(old.slice(0, -2))/30) {
+			document.getElementById("div_laliste").style.display="none";
+			document.getElementById('LinkedList1').style.height=old;
+			document.getElementById('div_laliste').style.height=old2;
+			
+			return;
+		}
+		setTimeout(function(){writeNext(i - (old.slice(0, -2))/30,old,old2);}, 5);
+	}
+	function hide_options(){
+		document.getElementById("div_laliste").style.display="block";
+		document.getElementById("div_options").style.display="none";
+	}
+	
+	function etatOptions(){
+		var options;
+		options="";
+		for (var i=0; i < 11; i++) {
+			if (document.getElementById('cb'+i).checked) {
+				options+='1';
+			} else {
+				options+='0';
+			}
+		}
+		
+		options+=","+document.getElementById('i0').value;	// updating frequency
+		options+=","+document.getElementById('i1').value;	// revision text
+		options+=","+document.getElementById('s0').value; 	// langue
+		callRuby('appliquerOptions('+options+')');
+	}
+	function load() {
+		if(window.attachEvent) {
+			window.attachEvent('onresize', setWindowSize);
+		}
+		else if(window.addEventListener) {
+			window.addEventListener('resize', setWindowSize, true);
+		}
+		else {
+			//The browser does not support Javascript event binding
+			alert('!! BROWSER DOES NOT SUPPORT JAVASCRIPT EVENT BINDING !!');
+		}
+		setWindowSize();
+	}
+	
+</script>
+
+  
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="treeview.css" />
+	<script type="text/JavaScript">
+		$(document).ready(function() {
+			$('span.the_list').contextMenu('myMenu1', {
+				bindings: {
+					'CM_0': function(t) { callRuby('selectionner_instances');},
+					'CM_1': function(t) { callRuby('enregistrer_definition');},
+					'CM_2': function(t) { callRuby('recharger_definition');},
+					'CM_3': function(t) { callRuby('editer_composant');},
+					'CM_4': function(t) { callRuby('renommer_composant');}
+				}
+			});
+		});
+		$.contextMenu.defaults({
+			menuStyle : {
+				width: "200px",
+				backgroundColor: '#fff'
+			},
+			itemStyle: {
+				fontSize:'12px'
+			}
+		});
+		 
+		window.onerror = function(message, url, linenumber) {
+			alert("!! JAVASCRIPT ERROR DETECTED !!\n\nPlease send email with screen copy of this error to bg.sketchup@gmail.com\n\nMessage : " + message + "\n\nLine in error : " + linenumber + " \n\nFile in error :  " + url);
+		}
+	</script>
+</head>
+
+
+<body onload="load();">
+			
+	<div id="treeview">
+		<div id="div_laliste" name="div_laliste">
+			<table class="tableau">
+				<TR class="liste">
+					<TD style="cursor:hand;">
+						<span class="the_list" id="quickDemo">
+							<ul id="LinkedList1" class="LinkedList" name="LinkedList1">
+								<center><p style="line-height:100px;text-align:center;" id="RefreshListMessage">Please refresh the list</p></center>
+							</ul>
+						</span>
+					</TD>
+				</TR>
+				
+				<TR>
+					<TD>
+						<center>
+							<button id="Btn0" title="Update the list" onclick="callRuby('maj');"><img src="Images\Refresh.png"/></button>
+							<button id="Btn1" title="Select component instances" onclick="callRuby('selectionner_instances');"><img src="Images\Select_Instances.png"/></button>
+							<button id="Btn2" title="Modify selected definition path" onclick="callRuby('changer_lien');"><img src="Images\link-edit-icon.png"/></button>
+							<button id="Btn3" title="Save selected definition" onclick="callRuby('enregistrer_definition');" ><img src="Images\Save_component.png"/></button>
+							<button id="Btn4" title="Load selected definition" onclick="callRuby('recharger_definition');"><img src="Images\Download_component.png"/></button>
+							<button id="Btn5" title="Save all definitions" onclick="callRuby('enregistrer_definitions');" ><img src="Images\Save.png"/></button>
+							<button id="Btn6" title="Load all definitions" onclick="callRuby('recharger_definitions');"><img src="Images\Download.png"/></button>
+							<button id="Btn10" title="Set date for all" onclick="callRuby('date_for_all');"><img src="Images\Date_for_all.png"/></button>
+							<button id="Btn7" title="Filter" onclick="callRuby('filters_window');"><img src="Images\Filter.png"/></button>
+							<button id="Btn8" title="Options" onclick="callRuby('options');"><img src="Images\Options.png"/></button>
+							<button id="Btn9" title="About" onclick="callRuby('apropos');"><img src="Images\About.png"/></button>
+						</center>
+						<input id=zone_texte readonly="readonly" style="width:100%;font-size:10pt;border:none;"/>
+					</TD>
+				</TR>
+			</table>
+		</div>
+		
+		<div id="div_options" style="display:none;background-color:#848484;color:#FFFFFF;">
+			<center><B id="t0" style="color:#FFFF00";>OPTIONS</B></center>
+			<span class="options" id="options_list">
+				<B id="t1">General :</B><BR>
+				<table>
+					<TR><TD colspan="2"><span id="txt0">Language</span> &nbsp <select type="list" id= "s0" style="width:100px;font-size:8pt;"></select></TD></TR>
+					<TR><TD><input type="checkbox" id="cb0"/></TD><TD id="txt1">Start plugin at start up</TD></TR>
+					<TR><TD><input type="checkbox" id="cb1"/></TD><TD id="txt2">Start component management on start up</TD></TR>
+					<TR><TD><input type="checkbox" id="cb9"/></TD><TD id="txt12">Save window size and position</TD></TR>
+				</table>
+				<HR><B id="t2">List</B><BR>
+				<table>
+					<TR><TD><input type="checkbox" id="cb2"/></TD><TD id="txt3">Show list in tree style</TD></TR>
+					<TR><TD><input type="checkbox" id="cb10"/></TD><TD id ="txt13">Show groups</TD></TR>
+					<TR><TD><input type="checkbox" id="cb3"/></TD><TD id="txt4">Auto-start : don t load list on start up</TD></TR>
+					<TR><TD colspan="2"><span id="txt5">Frequency to ask updating list (in seconds)</span> <input id="i0" style="width:50px;font-size:8pt;"></input></TD></TR>
+				</table>
+				<HR><B id="t3">Linked files</B><BR>
+				<table>
+					<TR><TD><input type="checkbox" id="cb4"/></TD><TD id="txt6">Auto-check file paths</TD></TR>
+					<TR><TD><input type="checkbox" id="cb5"/></TD><TD id="txt7">Bright red for component OLDER than file</TD></TR>
+				</table>
+				<HR><B id="t4">Selection</B><BR>
+				<table>
+					<TR><TD><input type="checkbox" id="cb6"/></TD><TD id="txt8">Auto-select instances in model</TD></TR>
+					<TR><TD><input type="checkbox" id="cb7"/></TD><TD id="txt9">Auto-select instances in list</TD></TR>
+				</table>
+				<HR><B id="t5">Revision management system </B><BR>
+				<table>
+					<TR><TD><input type="checkbox" id="cb8"/></TD><TD id="txt10">Use revision management system</TD></TR>
+					<TR><TD></TD><TD><span id="txt11">Revision text identification :</span> <input id="i1" style="width:50px;font-size:8pt;"></input></TD></TR>
+				</table>
+			</span>
+			<button style="width:100%" id="t6" onclick="callRuby('save_options_html');">Save</button><BR>
+			<button style="width:100%" id="t7" onclick="hide_options();">Cancel</button>
+		</div>
+	</div>
+	
+
+	<div class="contextMenu" id="myMenu1" style="width:300px;">
+		<ul>
+			<li id="CM_0"><img src="Images\Select_Instances.png" style="width:15px;height:15px;" />&nbsp 	<span id="CMT0">Select components instances</span></li>
+			<li id="CM_1"><img src="Images\Save_component.png" style="width:15px;height:15px;" />&nbsp 		<span id="CMT1">Save definition</span></li>
+			<li id="CM_2"><img src="Images\Download_component.png" style="width:15px;height:15px;" />&nbsp 	<span id="CMT2">Upload defintion</span></li>
+			<li id="CM_3"><img src="Images\Sketchup.png" style="width:15px;height:15px;" />&nbsp 			<span id="CMT3">Edit component</span></li>
+			<li id="CM_4"><img src="Images\Rename.png" style="width:15px;height:15px;" />&nbsp 				<span id="CMT4">Rename</span></li>
+		</ul>
+	
+
+	</div>
+	<script>
+		callRuby('start');
+	</script>
+
+</body>
+</html>
