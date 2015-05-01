@@ -31,8 +31,6 @@ function callRuby(actionName) {
   var query = 'skp:set_options@' + actionName;
   window.location.href = query;
 }
-function setOptions(attrs){
-}
 function expandDefinition(id){
   obj = $("#" + id)
   if(obj.is(":hidden")){
@@ -41,13 +39,11 @@ function expandDefinition(id){
     obj.hide()
   }
 }
-function applyConfig(){
-}
 </script>
 
 </head>
 
-<body class="config-body"  onload="callRuby('test')">
+<body class="config-body"  onload="callRuby('set')">
 <div class="no-selection-head"></div>
 <div id="background">
 
@@ -69,7 +65,7 @@ function applyConfig(){
 
 <div id="footer">
     <input type="submit" id="applyButton" name="applyButton" disabled="disabled"
-      class="config-button" value="Apply" onclick="applyConfig"/>
+      class="config-button" value="Apply" onclick="callRuby('update')"/>
 </div>
 
 <script src="../js/jquery-1.11.2.min.js" type="text/javascript" language="JavaScript"></script>

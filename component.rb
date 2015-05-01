@@ -3,6 +3,17 @@
 #
 require 'sketchup.rb'
 
+MAC = ( Object::RUBY_PLATFORM =~ /darwin/i ? true : false )
+WIN = ( (Object::RUBY_PLATFORM =~ /mswin/i || Object::RUBY_PLATFORM =~ /mingw/i) ? true : false )
+
+if MAC
+  PATH = $LOAD_PATH[1]
+elsif WIN
+  PATH = $LOAD_PATH[0]
+else
+  UI.messagebox("本插件仅支持Windos或Mac系统。")
+end
+
 def reload
   UI.menu("Plugins").add_item("Reload My Script") { load("component.rb") }
 end
@@ -14,7 +25,7 @@ end
 
 def component_adjust_dialog
   dlg = UI::WebDialog.new("组件调整", true, "", 339, 641, 150, 150, true)
-  dlg.set_file "#{$LOAD_PATH[1]}/ComponentAdjust/html/configurator.html"
+  dlg.set_file "#{PATH}/ComponentAdjust/html/configurator.html"
   dlg
 end
 
@@ -22,10 +33,21 @@ def init_window(definition)
   @_html_string = ""
   dialog = component_adjust_dialog
   dialog.add_action_callback("set_options") do |web_dialog,action_name|
-    if action_name == 'test'
-      dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{$LOAD_PATH[1]}/config-thumb.jpg'>\")")
+    if action_name == 'set'
+      dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{PATH}/config-thumb.jpg'>\")")
       dialog.execute_script("$('#header #config-head').html('#{definition.name}')")
       set_config_options(dialog, definition);
+      dialog.execute_script("$(\"#footer #applyButton\").removeAttr(\"disabled\")")
+    end
+    if action_name == 'update'
+      definition_id = @_selected_component_definition.object_id.to_s
+      @_new_customized_attrs = {definition_id => {}}
+      @_customized_attrs[definition_id].each_pair do |key, value|
+        value = dialog.get_element_value("input" + definition_id + key[1])
+        @_new_customized_attrs[definition_id][key[1]] = value
+      end
+      update_component_attrs(@_selected_component_definition, @_new_customized_attrs[definition_id])
+      redraw(@_selected_component_definition)
     end
   end
   dialog
@@ -45,6 +67,8 @@ end
 def switch_window
   if @_selected_component_definition.nil? || @_selected_instance !=  Sketchup.active_model.selection.first
     definition = selected_component_definition
+    @_customized_attrs = {}
+    @_dlg.close if !@_dlg.nil?
     @_dlg = init_window(definition)
   end
   return UI.messagebox("请选择一个动态组件") if @_selected_component_definition.nil?
@@ -56,17 +80,17 @@ def config_html_str(definition)
   attrs = component_attrs(definition)
   return @_html_string if attrs.nil?
   attrs = component_customized_attrs(attrs)
-
   definition_id = definition.object_id.to_s
+  @_customized_attrs.merge!({definition_id => attrs })
+
   @_html_string << "<a style=\"color: blue;\" onclick=\"expandDefinition(#{definition_id});\"><strong> > #{definition.name} </strong></a><br />"
   if @_selected_component_definition == definition
     @_html_string << "<div id=#{definition_id}>"
   else
     @_html_string << "<div id=#{definition_id} style=\"display: none;\">"
   end
-  @_html_string << "<span style=\"width: 100px; display: inline-block;\">名字(name)</span><input value=#{definition.name}></input><br/>"
   attrs.each_pair do |key, value|
-    @_html_string << "<span style=\"width: 100px; display: inline-block;\">#{key[0]}(#{key[1]})</span><input value=#{value}></input><br/>"
+    @_html_string << "<span style=\"width: 100px; display: inline-block;\">#{key[0]}(#{key[1]})</span><input id=#{'input'+definition_id+key[1]} value=#{value}></input><br/>"
   end
 
   @_html_string << "<div style=\"margin-left: 10px\">"
@@ -83,7 +107,7 @@ end
 
 def redraw(definition)
   definition.instances.each do |instance|
-    $dc_observers.get_latest_class.redraw(instance)
+    $dc_observers.get_latest_class.redraw_with_undo(instance)
   end
   definition
 end
@@ -118,6 +142,7 @@ def component_customized_attrs(attrs)
       customized_attributes.merge!([customized_key, origin_key] => customized_value)
     end
   end
+  customized_attributes.merge!(["名字", "name"] => attrs["_name"])
   customized_attributes
 end
 
