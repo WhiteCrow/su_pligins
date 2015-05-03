@@ -7,6 +7,10 @@ class Sketchup::ComponentDefinition
   def dynamic_attrs
     self.attribute_dictionary("dynamic_attributes")
   end
+
+  def set_dynamic_attr(key, value)
+    self.set_attribute("dynamic_attributes", key, value)
+  end
 end
 
 class Sketchup::ComponentInstance
@@ -31,7 +35,7 @@ class Sketchup::ComponentInstance
         customized_attributes.merge!([customized_key, origin_key] => customized_value)
       end
     end
-    customized_attributes.merge!(["名字", "name"] => definition_attrs["_name"])
+    customized_attributes.merge!(["名字", "_name"] => definition_attrs["_name"])
     customized_attributes
   end
 
@@ -51,8 +55,10 @@ class Sketchup::ComponentInstance
     redraw_flag = false
     old_attrs = self.dynamic_attrs
     new_attrs.each_pair do |key, value|
-      if old_attrs[key] != value
+      if old_attrs[key] != value && !old_attrs[key].nil?
+        puts "#{key} : #{old_attrs[key]} - #{value}"
         self.set_dynamic_attr(key, value)
+        self.definition.set_dynamic_attr(key, value)
         redraw_flag = true
       end
     end
@@ -101,18 +107,24 @@ def init_window(instance)
     if action_name == 'set'
       dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{PATH}/config-thumb.jpg'>\")")
       dialog.execute_script("$('#header #config-head').html('#{instance.dynamic_name}')")
+      @_customized_attrs = {}
       config_html_string = config_html_str(instance, "")
       dialog.execute_script("$('#content #config-options').html('#{config_html_string}')")
       dialog.execute_script("$(\"#footer #applyButton\").removeAttr(\"disabled\")")
     end
     if action_name == 'update'
-      instance_id = @_selected_instance.object_id.to_s
-      @_new_customized_attrs = {instance_id => {}}
-      @_customized_attrs[instance_id].each_pair do |key, value|
-        value = dialog.get_element_value("input" + instance_id + key[1])
-        @_new_customized_attrs[instance_id][key[1]] = value
+      @_customized_attrs.each_pair do |inst, attrs|
+        instance_id = inst.object_id.to_s
+        new_attrs = {instance_id => {}}
+        attrs.each_key do |key|
+          value = dialog.get_element_value("input" + instance_id + key[1])
+          new_attrs[instance_id][key[1]] = value
+        end
+        inst.update_dynamic_attrs(new_attrs[instance_id])
       end
-      @_selected_instance.update_dynamic_attrs(@_new_customized_attrs[instance_id])
+      # refresh @_customized_attrs
+      @_customized_attrs = {}
+      config_html_str(instance, "")
     end
   end
   dialog
@@ -121,10 +133,10 @@ end
 def config_html_str(instance, html_str)
   return html_str if instance.nil?
   attrs = instance.customized_attrs
-  return html_str if attrs.empty?
-
+  return html_str if (attrs.nil? || attrs.empty?)
   instance_id = instance.object_id.to_s
-  @_customized_attrs.merge!({instance_id => attrs })
+
+  @_customized_attrs.merge!({instance => attrs })
 
   html_str << "<a style=\"color: blue;\" onclick=\"expandDefinition(#{instance_id});\"><strong> > #{instance.dynamic_name} </strong></a><br />"
   if @_selected_instance == instance
@@ -159,7 +171,6 @@ def switch_window
 
   if @_selected_instance !=  Sketchup.active_model.selection.first
     instance = selected_component_instance
-    @_customized_attrs = {}
     @_dlg.close if !@_dlg.nil?
     @_dlg = init_window(instance)
   end
