@@ -51,7 +51,12 @@ function expandDefinition(id){
   <div id="config-image"></div>
   <div id="config-head"></div>
   <div id="config-itemcode"></div>
-  <div id="config-creator"></div>
+  <div id="config-creator">
+    <br/>
+    <button id='replace-window-button' class="config-button", style="display: none;" onclick="callRuby('replace_window')" >
+      等位替换
+    </button>
+  </div>
   <div id="config-msrp"></div>
   <div id="header-spacer"></div>
 </div>
@@ -64,8 +69,10 @@ function expandDefinition(id){
 </div>
 
 <div id="footer">
-    <input type="submit" id="applyButton" name="applyButton" disabled="disabled"
-      class="config-button" value="Apply" onclick="callRuby('update')"/>
+    <input type="submit" id="update_component_button" disabled="disabled"
+      class="config-button" value="提交" onclick="callRuby('update')"/>
+    <input type="submit" id="replace_component_button" style="display:none;" disabled="disabled"
+      class="config-button" value="替换" onclick="callRuby('replace_component')"/>
 </div>
 
 <script src="../js/jquery-1.11.2.min.js" type="text/javascript" language="JavaScript"></script>

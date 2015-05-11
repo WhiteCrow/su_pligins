@@ -1,89 +1,40 @@
 MAC = ( Object::RUBY_PLATFORM =~ /darwin/i ? true : false )
 WIN = ( (Object::RUBY_PLATFORM =~ /mswin/i || Object::RUBY_PLATFORM =~ /mingw/i) ? true : false )
 
-# extend Sketchup::ComponentDefinition
-
-class Sketchup::ComponentDefinition
-  def dynamic_attrs
-    self.attribute_dictionary("dynamic_attributes")
-  end
-
-  def set_dynamic_attr(key, value)
-    self.set_attribute("dynamic_attributes", key, value)
-  end
-end
-
-class Sketchup::ComponentInstance
-  def dynamic_name
-    dynamic_attrs["_name"]
-  end
-
-  def dynamic_attrs
-    self.attribute_dictionary("dynamic_attributes")
-  end
-
-  def customized_attrs
-    customized_attributes ||= {}
-    definition_attrs = self.definition.dynamic_attrs
-    return {} if definition_attrs.nil?
-
-    definition_attrs.each_pair do |key, value|
-      if key=~ /_formlabel$/ && !value.nil?
-        customized_key = value
-        origin_key = key.gsub(/^_|_formlabel$/, '')
-        customized_value = definition_attrs[origin_key]
-        customized_attributes.merge!([customized_key, origin_key] => customized_value)
-      end
-    end
-    customized_attributes.merge!(["名字", "_name"] => definition_attrs["_name"])
-    customized_attributes
-  end
-
-  def dynamic_attrs_info
-    dynamic_attrs.each_pair{|key, value| puts "#{key} : #{value}"}
-  end
-
-  def set_dynamic_attr(key, value)
-    self.set_attribute("dynamic_attributes", key, value)
-  end
-
-  def get_dynamic_attr(key)
-    get_attribute("dynamic_attributes", key)
-  end
-
-  def update_dynamic_attrs(new_attrs)
-    redraw_flag = false
-    old_attrs = self.dynamic_attrs
-    new_attrs.each_pair do |key, value|
-      if old_attrs[key] != value && !old_attrs[key].nil?
-        puts "#{key} : #{old_attrs[key]} - #{value}"
-        self.set_dynamic_attr(key, value)
-        self.definition.set_dynamic_attr(key, value)
-        redraw_flag = true
-      end
-    end
-    self.redraw if redraw_flag == true
-    self
-  end
-
-  def sub_instances
-    self.definition.entities.select do |e|
-      e.is_a? Sketchup::ComponentInstance
-    end
-  end
-
-  def redraw
-    $dc_observers.get_latest_class.redraw_with_undo(self)
-  end
-
-end
-
 if MAC
   PATH = $LOAD_PATH[1]
 elsif WIN
   PATH = $LOAD_PATH[0]
 else
   UI.messagebox("本插件仅支持Windos或Mac系统。")
+end
+
+require "#{PATH}/ComponentAdjust/component_definition_ext.rb"
+require "#{PATH}/ComponentAdjust/component_instance_ext.rb"
+
+class MySelectionObserver < Sketchup::SelectionObserver
+  def initialize(instance, dialog)
+    @instance = instance
+    @dialog = dialog
+  end
+
+  def onSelectionBulkChange(selection)
+    puts @instance
+    instance = selection.first
+    if @instance.is_a?(Sketchup::ComponentInstance) && instance.is_a?(Sketchup::ComponentInstance) && instance != @instance
+      @dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{PATH}/config-thumb.jpg'>\")")
+      @dialog.execute_script("$('#header #config-head').html('#{instance.dynamic_name}')")
+      @_customized_attrs = {}
+      config_html_string = config_html_str(instance, instance, "")
+      @dialog.execute_script("$('#content #config-options').html('#{config_html_string}')")
+      @dialog.execute_script("$(\"#footer #replace_component_button\").removeAttr(\"disabled\")")
+      @dialog.add_action_callback("set_options") do |web_dialog,action_name|
+        if action_name == 'replace_component'
+          @instance.equipotential_replace(instance)
+        end
+      end
+    end
+  end
 end
 
 def reload
@@ -101,16 +52,33 @@ def component_adjust_dialog
   dlg
 end
 
-def init_window(instance)
+def component_replace_dialog
+  dlg = UI::WebDialog.new("等位替换", true, "", 339, 641, 150, 150, true)
+  dlg.set_file "#{PATH}/ComponentAdjust/html/configurator.html"
+  dlg
+end
+
+def init_dialogs(instance)
   dialog = component_adjust_dialog
+  replace_dialog = component_replace_dialog
+
   dialog.add_action_callback("set_options") do |web_dialog,action_name|
     if action_name == 'set'
       dialog.execute_script("$('#header #config-image').html(\"<img src=\'#{PATH}/config-thumb.jpg'>\")")
       dialog.execute_script("$('#header #config-head').html('#{instance.dynamic_name}')")
+      dialog.execute_script("$('#replace-window-button').show()")
       @_customized_attrs = {}
-      config_html_string = config_html_str(instance, "")
+      config_html_string = config_html_str(instance, instance, "")
       dialog.execute_script("$('#content #config-options').html('#{config_html_string}')")
-      dialog.execute_script("$(\"#footer #applyButton\").removeAttr(\"disabled\")")
+      dialog.execute_script("$(\"#footer #update_component_button\").removeAttr(\"disabled\")")
+    end
+    if action_name == 'replace_window'
+      replace_dialog.execute_script("$('#header #config-head').html('请选择被替换组件')")
+      replace_dialog.execute_script("$('#footer #update_component_button').hide(); ")
+      replace_dialog.execute_script("$('#footer #replace_component_button').show(); ")
+      #replace_dialog.visible? ? replace_dialog.close : replace_dialog.show
+      Sketchup.active_model.selection.add_observer(MySelectionObserver.new(@_selected_instance, replace_dialog))
+      replace_dialog.show
     end
     if action_name == 'update'
       @_customized_attrs.each_pair do |inst, attrs|
@@ -130,7 +98,7 @@ def init_window(instance)
   dialog
 end
 
-def config_html_str(instance, html_str)
+def config_html_str(origin_instance, instance, html_str)
   return html_str if instance.nil?
   attrs = instance.customized_attrs
   return html_str if (attrs.nil? || attrs.empty?)
@@ -139,7 +107,7 @@ def config_html_str(instance, html_str)
   @_customized_attrs.merge!({instance => attrs })
 
   html_str << "<a style=\"color: blue;\" onclick=\"expandDefinition(#{instance_id});\"><strong> > #{instance.dynamic_name} </strong></a><br />"
-  if @_selected_instance == instance
+  if origin_instance == instance
     html_str << "<div id=#{instance_id}>"
   else
     html_str << "<div id=#{instance_id} style=\"display: none;\">"
@@ -151,12 +119,12 @@ def config_html_str(instance, html_str)
 
   html_str << "<div style=\"margin-left: 10px\">"
   instance.sub_instances.each do |sub_i|
-    config_html_str(sub_i, html_str)
+    config_html_str(origin_instance, sub_i, html_str)
   end
   html_str << "</div></div>"
 end
 
-def selected_component_instance
+def selected_instance
   selection = Sketchup.active_model.selection
   @_selected_instance = selection.first
   @_selected_component_definition =
@@ -170,9 +138,8 @@ def switch_window
   end
 
   if @_selected_instance !=  Sketchup.active_model.selection.first
-    instance = selected_component_instance
     @_dlg.close if !@_dlg.nil?
-    @_dlg = init_window(instance)
+    @_dlg = init_dialogs(selected_instance)
   end
 
   @_dlg.visible? ? @_dlg.close : @_dlg.show
