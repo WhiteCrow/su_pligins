@@ -1,3 +1,4 @@
+require "#{PATH}/ComponentAdjust/base_ext.rb"
 # extend Sketchup::ComponentInstance
 
 class Sketchup::ComponentInstance
@@ -14,20 +15,19 @@ class Sketchup::ComponentInstance
   end
 
   def customized_attrs
-    customized_attributes ||= {}
+    customized_attributes ||= []
     definition_attrs = self.definition.dynamic_attrs
-    return {} if definition_attrs.nil?
+    return [] if definition_attrs.nil?
 
     definition_attrs.each_pair do |key, value|
-      if key=~ /_formlabel$/ && !value.nil?
+      if key=~ /_formlabel$/ && !value.nil? && definition_attrs[key.gsub(/formlabel$/, "access")] != "NONE"
         customized_key = value
         origin_key = key.gsub(/^_|_formlabel$/, '')
         customized_value = definition_attrs[origin_key]
-        customized_attributes.merge!([customized_key, origin_key] => customized_value)
+        customized_attributes << [customized_key, origin_key, customized_value]
       end
     end
-    customized_attributes.merge!(["名字", "_name"] => definition_attrs["_name"])
-    customized_attributes
+    customized_attributes.sort
   end
 
   def set_dynamic_attr(key, value)

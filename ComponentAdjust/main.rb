@@ -113,8 +113,8 @@ def config_html_str(origin_instance, instance, html_str)
     html_str << "<div id=#{instance_id} style=\"display: none;\">"
   end
 
-  attrs.each_pair do |key, value|
-    html_str << "<span style=\"width: 100px; display: inline-block;\">#{key[0]}(#{key[1]})</span><input id=#{'input'+ instance_id + key[1]} value=#{value}></input><br/>"
+  attrs.each do |arr|
+    html_str << "<span style=\"width: 100px; display: inline-block;\">#{arr[0]}(#{arr[1]})</span><input id=#{'input'+ instance_id + arr[1]} value=#{arr[2]}></input><br/>"
   end
 
   html_str << "<div style=\"margin-left: 10px\">"
